@@ -40,7 +40,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-            fetch-depth: 0
+          fetch-depth: 0
       - uses: actions/setup-go@v4
         with:
           go-version: '${{ matrix.go }}'
@@ -50,4 +50,5 @@ jobs:
           args: build --snapshot --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./dist/etc-hosts-proxy_linux_amd64_v1/etc-hosts-proxy --version
+      - name: Check the linux build version
+        run: ./dist/etc-hosts-proxy_linux_amd64_v1/etc-hosts-proxy --version
