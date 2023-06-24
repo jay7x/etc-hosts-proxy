@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -11,6 +12,28 @@ import (
 var (
 	executableName string = "<unknown>"
 )
+
+func GetEnvWithDefault(name string, defaultValue string) string {
+	ev, found := os.LookupEnv(name)
+	if !found {
+		return defaultValue
+	}
+	return ev
+}
+
+func GetEnvStrMap(name string) map[string]string {
+	ev, found := os.LookupEnv(name)
+	if !found {
+		return map[string]string{}
+	}
+	vList := strings.Split(ev, ",")
+	vMap := make(map[string]string, len(vList))
+	for _, x := range vList {
+		kv := strings.Split(x, "=")
+		vMap[kv[0]] = kv[1]
+	}
+	return vMap
+}
 
 func main() {
 	if path, err := os.Executable(); err == nil {
@@ -32,8 +55,12 @@ func newApp() *cobra.Command {
 
 	rootCmd.SetVersionTemplate("{{.Version}}\n")
 
-	rootCmd.PersistentFlags().String("log-level", "", "Set the logging level [trace, debug, info, warn, error]")
-	rootCmd.PersistentFlags().Bool("debug", false, "debug mode")
+	rootCmd.PersistentFlags().String("log-level",
+		GetEnvWithDefault("ETC_HOSTS_PROXY_LOG_LEVEL", ""),
+		"Set the logging level [trace, debug, info, warn, error]")
+	rootCmd.PersistentFlags().Bool("debug",
+		GetEnvWithDefault("ETC_HOSTS_PROXY_DEBUG", "false") == "true", "Enable debug mode")
+
 	rootCmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
 		l, _ := cmd.Flags().GetString("log-level")
 		if l != "" {

@@ -31,9 +31,16 @@ func newRunCommand() *cobra.Command {
 			executableName,
 		),
 	}
-	runCommand.Flags().StringToStringP("hosts", "H", map[string]string{}, "<host>=<ip> pairs to resolve <host> to <ip>")
-	runCommand.Flags().StringP("mode", "M", "http", "Mode to start proxy in (http or socks5)")
-	runCommand.Flags().StringP("listen-address", "L", "127.0.0.1:8080", "[<host>]:<port> to listen for proxy requests on")
+
+	runCommand.Flags().StringToStringP("hosts", "H",
+		GetEnvStrMap("ETC_HOSTS_PROXY_HOSTS_LIST"),
+		"<host>=<ip> pairs to resolve <host> to <ip> (ETC_HOSTS_PROXY_HOSTS_LIST)")
+	runCommand.Flags().StringP("mode", "M",
+		GetEnvWithDefault("ETC_HOSTS_PROXY_MODE", "http"),
+		"Mode to start proxy in (http or socks5) (ETC_HOSTS_PROXY_MODE)")
+	runCommand.Flags().StringP("listen-address", "L",
+		GetEnvWithDefault("ETC_HOSTS_PROXY_LISTEN_ADDRESS", "127.0.0.1:8080"),
+		"[<host>]:<port> to listen for proxy requests on (ETC_HOSTS_PROXY_LISTEN_ADDRESS)")
 	return runCommand
 }
 

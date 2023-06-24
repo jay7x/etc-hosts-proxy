@@ -44,3 +44,13 @@ curl -v -x 127.0.0.1:8080 http://www.example.com
 ```
 
 Proxy listens on `127.0.0.1:8080` by default. Use `-L` (or `--listen-address`) CLI option to change this.
+
+## Environment variables
+
+| Variable | Description |
+| - | - |
+| `ETC_HOSTS_PROXY_DEBUG` | Enable debug mode |
+| `ETC_HOSTS_PROXY_LOG_LEVEL` | Set the logging level [`trace`, `debug`, `info`, `warn`, `error`] |
+| `ETC_HOSTS_PROXY_MODE` | Mode to start proxy in (`http` or `socks5`) |
+| `ETC_HOSTS_PROXY_LISTEN_ADDRESS` | [`<host>`]:`<port>` to listen for proxy requests on |
+| `ETC_HOSTS_PROXY_HOSTS_LIST` | comma-separated list of `<host>=<ip>` pairs to resolve `<host>` to `<ip>` |
