@@ -28,7 +28,7 @@ dockers:
   - goos: linux
     goarch: amd64
     use: buildx
-    dockerfile: Dockerfile.goreleaser
+    dockerfile: .dockerfile
     build_flag_templates:
       - --platform=linux/amd64
       - &l1 --label=org.opencontainers.image.title={{ .ProjectName }}
@@ -43,7 +43,7 @@ dockers:
   - goos: linux
     goarch: arm64
     use: buildx
-    dockerfile: Dockerfile.goreleaser
+    dockerfile: .dockerfile
     build_flag_templates:
       - --platform=linux/arm64
       - *l1
