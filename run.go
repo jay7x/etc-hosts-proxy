@@ -1,13 +1,17 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"net/http"
+	"strconv"
 
 	"github.com/elazarl/goproxy"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/things-go/go-socks5"
+	"github.com/things-go/go-socks5/statute"
 )
 
 func newRunCommand() *cobra.Command {
@@ -34,7 +38,7 @@ func newRunCommand() *cobra.Command {
 
 	runCommand.Flags().StringToStringP("hosts", "H",
 		GetEnvStrMap("ETC_HOSTS_PROXY_HOSTS_LIST"),
-		"<host>=<ip> pairs to resolve <host> to <ip> (ETC_HOSTS_PROXY_HOSTS_LIST)")
+		"<host>=<ip> pairs to redirect <host> to <ip> (ETC_HOSTS_PROXY_HOSTS_LIST)")
 	runCommand.Flags().StringP("mode", "M",
 		GetEnvWithDefault("ETC_HOSTS_PROXY_MODE", "http"),
 		"Mode to start proxy in (http or socks5) (ETC_HOSTS_PROXY_MODE)")
@@ -42,6 +46,27 @@ func newRunCommand() *cobra.Command {
 		GetEnvWithDefault("ETC_HOSTS_PROXY_LISTEN_ADDRESS", "127.0.0.1:8080"),
 		"[<host>]:<port> to listen for proxy requests on (ETC_HOSTS_PROXY_LISTEN_ADDRESS)")
 	return runCommand
+}
+
+// SOCKS5 destination address rewriter
+type HostRewriter struct {
+	hostsMap map[string]string
+}
+
+func (r HostRewriter) Rewrite(ctx context.Context, request *socks5.Request) (context.Context, *statute.AddrSpec) {
+	dst, found := r.hostsMap[request.DestAddr.FQDN]
+	if !found {
+		dst, found = r.hostsMap[request.DestAddr.IP.String()]
+	}
+
+	if found {
+		daSpec, err := statute.ParseAddrSpec(net.JoinHostPort(dst, strconv.Itoa(request.DestAddr.Port)))
+		if err == nil {
+			return ctx, &daSpec
+		}
+		logrus.Warnf("Unable to parse AddrSpec(%v:%v), skipping...", dst, request.DestAddr.Port)
+	}
+	return ctx, request.DestAddr
 }
 
 func runAction(cmd *cobra.Command, args []string) error {
@@ -54,13 +79,13 @@ func runAction(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	for host, ip := range hostsMap {
-		logrus.Debugf("Mapping %s to %s", host, ip)
+	for src, dst := range hostsMap {
+		logrus.Debugf("Mapping %s to %s", src, dst)
 	}
 
 	switch proxyMode, _ := cmd.Flags().GetString("mode"); proxyMode {
 	case "http":
-		logrus.Debugln("Starting HTTP proxy...")
+		logrus.Debugf("Starting HTTP proxy on %s", listenAddress)
 		proxy := goproxy.NewProxyHttpServer()
 		proxy.Logger = logrus.StandardLogger()
 		if logrus.GetLevel() >= logrus.DebugLevel {
@@ -68,23 +93,31 @@ func runAction(cmd *cobra.Command, args []string) error {
 		}
 		proxy.OnRequest().DoFunc(
 			func(r *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
-				if ip, found := hostsMap[r.Host]; found {
-					r.URL.Host = ip
+				if dst, found := hostsMap[r.Host]; found {
+					r.URL.Host = dst
 				}
 				return r, nil
 			})
 		proxy.OnRequest().HandleConnectFunc(
 			func(host string, ctx *goproxy.ProxyCtx) (*goproxy.ConnectAction, string) {
 				h, port, _ := net.SplitHostPort(host)
-				if ip, found := hostsMap[h]; found {
-					return goproxy.OkConnect, net.JoinHostPort(ip, port)
+				if dst, found := hostsMap[h]; found {
+					return goproxy.OkConnect, net.JoinHostPort(dst, port)
 				}
 				return goproxy.OkConnect, host
 			})
 		logrus.Fatal(http.ListenAndServe(listenAddress, proxy))
+
 	case "socks5":
-		logrus.Debugln("Starting SOCKS5 proxy...")
-		logrus.Fatalln("SOCKS5 proxy is not implemented yet...")
+		logrus.Debugf("Starting SOCKS5 proxy on %s", listenAddress)
+		proxy := socks5.NewServer(
+			socks5.WithLogger(logrus.StandardLogger()),
+			socks5.WithRewriter(HostRewriter{hostsMap: hostsMap}),
+		)
+		if err := proxy.ListenAndServe("tcp", listenAddress); err != nil {
+			logrus.Fatal(err)
+		}
+
 	default:
 		logrus.Fatalf("Unsupported proxy mode %v", proxyMode)
 	}
