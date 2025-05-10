@@ -26,7 +26,7 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: goreleaser/goreleaser-action@v4
+      - uses: goreleaser/goreleaser-action@v6
         with:
           version: '~> 1.18'
           args: release --clean
