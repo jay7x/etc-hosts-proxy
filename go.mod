@@ -6,7 +6,7 @@ require (
 	github.com/elazarl/goproxy v0.0.0-20230731152917-f99041a5c027
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.9.1
-	github.com/things-go/go-socks5 v0.0.5
+	github.com/things-go/go-socks5 v0.0.6
 )
 
 require (
