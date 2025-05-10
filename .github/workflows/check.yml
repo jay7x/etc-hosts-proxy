@@ -44,9 +44,9 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: '${{ matrix.go }}'
-      - uses: goreleaser/goreleaser-action@v4
+      - uses: goreleaser/goreleaser-action@v6
         with:
-          version: '~> 1.18'
+          version: '~> 2'
           args: build --snapshot --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
