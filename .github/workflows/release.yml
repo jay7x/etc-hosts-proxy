@@ -21,7 +21,7 @@ jobs:
       - name: Set up QEMU for Docker buildx
         uses: docker/setup-qemu-action@v2
       - name: Docker Login
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
