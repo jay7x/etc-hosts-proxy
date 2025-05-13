@@ -10,7 +10,7 @@ jobs:
     strategy:
       matrix:
         golangci: ['2.1.6']
-        go: ['1.20']
+        go: ['1.24']
     name: golangci-lint v${{ matrix.golangci }}, go v${{ matrix.go }}
     steps:
       - uses: actions/checkout@v4
@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go: ['1.20']
+        go: ['1.24']
     name: go v${{ matrix.go }} test
     steps:
       - uses: actions/checkout@v4
@@ -36,7 +36,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go: ['1.20']
+        go: ['1.24']
     steps:
       - uses: actions/checkout@v4
         with:
