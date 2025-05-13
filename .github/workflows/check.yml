@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        golangci: ['1.53']
+        golangci: ['2.1.6']
         go: ['1.20']
     name: golangci-lint v${{ matrix.golangci }}, go v${{ matrix.go }}
     steps:
