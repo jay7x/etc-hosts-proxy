@@ -69,6 +69,24 @@ func (r HostRewriter) Rewrite(ctx context.Context, request *socks5.Request) (con
 	return ctx, request.DestAddr
 }
 
+// SOCKS5 mapping DNS resolver
+type HostResolver struct {
+	hostsMap map[string]string
+}
+
+func (r HostResolver) Resolve(ctx context.Context, name string) (context.Context, net.IP, error) {
+	dst, found := r.hostsMap[name]
+	if found {
+		return ctx, net.ParseIP(dst), nil
+	}
+
+	addr, err := net.ResolveIPAddr("ip", name)
+	if err != nil {
+		return ctx, nil, err
+	}
+	return ctx, addr.IP, err
+}
+
 func runAction(cmd *cobra.Command, args []string) error {
 	listenAddress, err := cmd.Flags().GetString("listen-address")
 	if err != nil {
@@ -113,6 +131,7 @@ func runAction(cmd *cobra.Command, args []string) error {
 		proxy := socks5.NewServer(
 			socks5.WithLogger(logrus.StandardLogger()),
 			socks5.WithRewriter(HostRewriter{hostsMap: hostsMap}),
+			socks5.WithResolver(HostResolver{hostsMap: hostsMap}),
 		)
 		if err := proxy.ListenAndServe("tcp", listenAddress); err != nil {
 			logrus.Fatal(err)
