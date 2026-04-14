@@ -27,43 +27,22 @@ changelog:
       - "^docs:"
       - "^test:"
       - Merge pull request
-dockers:
-  - goos: linux
-    goarch: amd64
-    use: buildx
-    build_flag_templates:
-      - --platform=linux/amd64
-      - &l1 --label=org.opencontainers.image.title={{ .ProjectName }}
-      - &l2 --label=org.opencontainers.image.description={{ .ProjectName }}
-      - &l3 --label=org.opencontainers.image.source=https://github.com/jay7x/{{ .ProjectName }}
-      - &l4 --label=org.opencontainers.image.version={{ .Version }}
-      - &l5 --label=org.opencontainers.image.created={{ .Now }}
-      - &l6 --label=org.opencontainers.image.revision={{ .FullCommit }}
-      - &l7 --label=org.opencontainers.image.licenses=Apache-2.0
-    image_templates:
-      - &img_amd64 "ghcr.io/jay7x/{{ .ProjectName }}:{{ .Version }}-amd64"
-  - goos: linux
-    goarch: arm64
-    use: buildx
-    build_flag_templates:
-      - --platform=linux/arm64
-      - *l1
-      - *l2
-      - *l3
-      - *l4
-      - *l5
-      - *l6
-      - *l7
-    image_templates:
-      - &img_arm64 "ghcr.io/jay7x/{{ .ProjectName }}:{{ .Version }}-arm64"
-docker_manifests:
-  - name_template: "ghcr.io/jay7x/{{ .ProjectName }}:{{ .Version }}"
-    image_templates: &img_tmpl
-      - *img_amd64
-      - *img_arm64
-  - name_template: "ghcr.io/jay7x/{{ .ProjectName }}:{{ .Major }}.{{ .Minor }}"
-    image_templates: *img_tmpl
-  - name_template: "ghcr.io/jay7x/{{ .ProjectName }}:{{ .Major }}"
-    image_templates: *img_tmpl
-  - name_template: "ghcr.io/jay7x/{{ .ProjectName }}:latest"
-    image_templates: *img_tmpl
+dockers_v2:
+  - images:
+      - "ghcr.io/jay7x/{{ .ProjectName }}"
+    tags:
+      - "{{ .Version }}"
+      - "{{ .Major }}.{{ .Minor }}"
+      - "{{ .Major }}"
+      - "latest"
+    labels:
+      org.opencontainers.image.title: "{{ .ProjectName }}"
+      org.opencontainers.image.description: "{{ .ProjectName }}"
+      org.opencontainers.image.source: "https://github.com/jay7x/{{ .ProjectName }}"
+      org.opencontainers.image.version: "{{ .Version }}"
+      org.opencontainers.image.created: "{{ .Now }}"
+      org.opencontainers.image.revision: "{{ .FullCommit }}"
+      org.opencontainers.image.licenses: "Apache-2.0"
+    platforms:
+      - linux/amd64
+      - linux/arm64
