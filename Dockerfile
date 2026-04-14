@@ -3,7 +3,8 @@
 
 FROM scratch
 
-COPY etc-hosts-proxy /bin/etc-hosts-proxy
+ARG TARGETPLATFORM
+COPY $TARGETPLATFORM/etc-hosts-proxy /bin/etc-hosts-proxy
 
 ENV \
     ETC_HOSTS_PROXY_DEBUG="false" \
