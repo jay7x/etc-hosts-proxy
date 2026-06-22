@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -60,6 +61,9 @@ func newApp() *cobra.Command {
 		"Set the logging level [trace, debug, info, warn, error]")
 	rootCmd.PersistentFlags().Bool("debug",
 		GetEnvWithDefault("ETC_HOSTS_PROXY_DEBUG", "false") == "true", "Enable debug mode")
+	rootCmd.PersistentFlags().String("log-format",
+		GetEnvWithDefault("ETC_HOSTS_PROXY_LOG_FORMAT", ""),
+		"Log format [text, json]")
 
 	rootCmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
 		l, _ := cmd.Flags().GetString("log-level")
@@ -73,6 +77,14 @@ func newApp() *cobra.Command {
 		debug, _ := cmd.Flags().GetBool("debug")
 		if debug {
 			logrus.SetLevel(logrus.DebugLevel)
+		}
+		format, _ := cmd.Flags().GetString("log-format")
+		switch strings.ToLower(format) {
+		case "json":
+			logrus.SetFormatter(&logrus.JSONFormatter{})
+		case "text", "":
+		default:
+			return fmt.Errorf("invalid log format %q, expected one of: text, json", format)
 		}
 
 		return nil

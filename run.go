@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/elazarl/goproxy"
 	"github.com/sirupsen/logrus"
@@ -13,6 +14,16 @@ import (
 	"github.com/things-go/go-socks5"
 	"github.com/things-go/go-socks5/statute"
 )
+
+type accessEntry struct {
+	start     time.Time
+	client    string
+	method    string
+	host      string
+	path      string
+	rewritten bool
+	target    string
+}
 
 func newRunCommand() *cobra.Command {
 	var runCommand = &cobra.Command{
@@ -54,6 +65,11 @@ type HostRewriter struct {
 }
 
 func (r HostRewriter) Rewrite(ctx context.Context, request *socks5.Request) (context.Context, *statute.AddrSpec) {
+	originalHost := request.DestAddr.FQDN
+	if originalHost == "" {
+		originalHost = request.DestAddr.IP.String()
+	}
+
 	dst, found := r.hostsMap[request.DestAddr.FQDN]
 	if !found {
 		dst, found = r.hostsMap[request.DestAddr.IP.String()]
@@ -62,10 +78,24 @@ func (r HostRewriter) Rewrite(ctx context.Context, request *socks5.Request) (con
 	if found {
 		daSpec, err := statute.ParseAddrSpec(net.JoinHostPort(dst, strconv.Itoa(request.DestAddr.Port)))
 		if err == nil {
+			logrus.WithFields(logrus.Fields{
+				"client":    request.RemoteAddr.String(),
+				"method":    "SOCKS5",
+				"host":      originalHost,
+				"rewritten": true,
+				"target":    dst,
+			}).Info("")
 			return ctx, &daSpec
 		}
 		logrus.Warnf("Unable to parse AddrSpec(%v:%v), skipping...", dst, request.DestAddr.Port)
 	}
+
+	logrus.WithFields(logrus.Fields{
+		"client":    request.RemoteAddr.String(),
+		"method":    "SOCKS5",
+		"host":      originalHost,
+		"rewritten": false,
+	}).Info("")
 	return ctx, request.DestAddr
 }
 
@@ -93,17 +123,63 @@ func runAction(cmd *cobra.Command, args []string) error {
 		}
 		proxy.OnRequest().DoFunc(
 			func(r *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
+				entry := &accessEntry{
+					start:  time.Now(),
+					client: r.RemoteAddr,
+					method: r.Method,
+					host:   r.Host,
+					path:   r.URL.Path,
+				}
 				if dst, found := hostsMap[r.Host]; found {
+					entry.rewritten = true
+					entry.target = dst
 					r.URL.Host = dst
 				}
+				ctx.UserData = entry
 				return r, nil
+			})
+		proxy.OnResponse().DoFunc(
+			func(resp *http.Response, ctx *goproxy.ProxyCtx) *http.Response {
+				if resp == nil {
+					return resp
+				}
+				if entry, ok := ctx.UserData.(*accessEntry); ok {
+					fields := logrus.Fields{
+						"client":      entry.client,
+						"method":      entry.method,
+						"host":        entry.host,
+						"path":        entry.path,
+						"status":      resp.StatusCode,
+						"size":        resp.ContentLength,
+						"duration_ms": time.Since(entry.start).Milliseconds(),
+						"rewritten":   entry.rewritten,
+					}
+					if entry.rewritten {
+						fields["target"] = entry.target
+					}
+					logrus.WithFields(fields).Info("")
+				}
+				return resp
 			})
 		proxy.OnRequest().HandleConnectFunc(
 			func(host string, ctx *goproxy.ProxyCtx) (*goproxy.ConnectAction, string) {
 				h, port, _ := net.SplitHostPort(host)
 				if dst, found := hostsMap[h]; found {
+					logrus.WithFields(logrus.Fields{
+						"client":    ctx.Req.RemoteAddr,
+						"method":    "CONNECT",
+						"host":      host,
+						"rewritten": true,
+						"target":    dst,
+					}).Info("")
 					return goproxy.OkConnect, net.JoinHostPort(dst, port)
 				}
+				logrus.WithFields(logrus.Fields{
+					"client":    ctx.Req.RemoteAddr,
+					"method":    "CONNECT",
+					"host":      host,
+					"rewritten": false,
+				}).Info("")
 				return goproxy.OkConnect, host
 			})
 		logrus.Fatal(http.ListenAndServe(listenAddress, proxy))
