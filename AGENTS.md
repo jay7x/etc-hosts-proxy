@@ -40,6 +40,20 @@ The SOCKS5 test uses `test.localhost` (RFC 6761 — always resolves to loopback)
 
 The test binary (`./etc-hosts-proxy.test`) is automatically removed after the test run via `TestMain`.
 
+## Access logs
+
+Access logs are emitted as structured `logrus.WithFields` entries at `info` level for every proxied request:
+
+| Mode | Fields |
+|---|---|
+| **HTTP** | `client`, `method` (GET/POST/...), `host`, `path`, `status`, `size`, `duration_ms`, `rewritten`, `target` |
+| **CONNECT** | `client`, `method: "CONNECT"`, `host`, `rewritten`, `target` |
+| **SOCKS5** | `client`, `method: "SOCKS5"`, `host`, `rewritten`, `target` |
+
+`target` is omitted when `rewritten=false`. Access logs are suppressed at `warn` level and above; `debug` level adds goproxy/socks5 verbose output.
+
 ## Environment / CLI
 
 CLI is `etc-hosts-proxy run` (`-H`/`--hosts`, `-M`/`--mode`, `-L`/`--listen-address`). Every flag also has an `ETC_HOSTS_PROXY_*` env-var counterpart. Default mode is `http`; default listen `127.0.0.1:8080`.
+
+Global flags: `--log-level`, `--debug`, `--log-format` (`text`/`json`, default `text`). When `json` is selected, access logs are emitted as JSON lines and can be parsed with `jq` or similar tools.
