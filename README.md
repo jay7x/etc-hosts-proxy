@@ -60,6 +60,8 @@ curl -v -x socks5h://127.0.0.1:1080 http://www.example.com
 
 See `etc-hosts-proxy --help` for general CLI usage information.
 
+Global flags `--log-level`, `--debug`, and `--log-format` (`text`/`json`) control logging behavior. Each also has an `ETC_HOSTS_PROXY_*` env-var counterpart; see the table below.
+
 ## Docker usage
 
 You may also use a Docker image if you'd prefer:
@@ -122,6 +124,7 @@ See [etc-hosts-proxy Github Container registry](https://github.com/jay7x/etc-hos
 | - | - |
 | `ETC_HOSTS_PROXY_DEBUG` | Enable debug mode |
 | `ETC_HOSTS_PROXY_LOG_LEVEL` | Set the logging level [`trace`, `debug`, `info`, `warn`, `error`] |
+| `ETC_HOSTS_PROXY_LOG_FORMAT` | Log format (`text` or `json`) |
 | `ETC_HOSTS_PROXY_MODE` | Mode to start proxy in (`http` or `socks5`) |
 | `ETC_HOSTS_PROXY_LISTEN_ADDRESS` | [`<host>`]:`<port>` to listen for proxy requests on |
 | `ETC_HOSTS_PROXY_HOSTS_LIST` | comma-separated list of `<host>=<ip>` pairs to redirect `<host>` to `<ip>` |
