@@ -14,11 +14,11 @@ goreleaser release --snapshot --clean   # dry-run release
 
 ## Go version
 
-CI tests against Go 1.25 and 1.26.
+CI uses Go 1.26 (see `go_version` in `.github/workflows/ci.yml`).
 
 ## Release
 
-Tags `v*.*.*` trigger goreleaser, which cross-compiles binaries and publishes Docker images to `ghcr.io/jay7x/etc-hosts-proxy`.
+A single `ci.yml` workflow handles everything. Tags `v*.*.*` trigger `goreleaser release --clean` (real release, pushes to GitHub Container Registry). Non-tag pushes to `main` and PRs run `goreleaser release --snapshot --clean` instead (dry-run, no push).
 
 ## Docker
 
