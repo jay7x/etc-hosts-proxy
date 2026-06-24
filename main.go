@@ -30,8 +30,11 @@ func GetEnvStrMap(name string) map[string]string {
 	vList := strings.Split(ev, ",")
 	vMap := make(map[string]string, len(vList))
 	for _, x := range vList {
-		kv := strings.Split(x, "=")
-		vMap[kv[0]] = kv[1]
+		kv := strings.SplitN(x, "=", 2)
+		if len(kv) < 2 {
+			continue
+		}
+		vMap[strings.TrimSpace(kv[0])] = strings.TrimSpace(kv[1])
 	}
 	return vMap
 }
