@@ -57,3 +57,7 @@ Access logs are emitted as structured `logrus.WithFields` entries at `info` leve
 CLI is `etc-hosts-proxy run` (`-H`/`--hosts`, `-M`/`--mode`, `-L`/`--listen-address`). Every flag also has an `ETC_HOSTS_PROXY_*` env-var counterpart. Default mode is `http`; default listen `127.0.0.1:8080`.
 
 Global flags: `--log-level`, `--debug`, `--log-format` (`text`/`json`, default `text`). When `json` is selected, access logs are emitted as JSON lines and can be parsed with `jq` or similar tools.
+
+## Commit messages
+
+Use [Conventional Commits](https://www.conventionalcommits.org/): `feat:`, `fix:`, `chore:`, `docs:`, `test:`, `build:`.
