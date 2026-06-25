@@ -44,11 +44,22 @@ jobs:
           cache: false
       - run: go test -v ./...
 
+  suite:
+    needs:
+      - lint
+      - tests
+    runs-on: ubuntu-latest
+    name: test suite
+    steps:
+      - run: echo Test suite completed
+
   release:
     permissions:
       contents: write # To update the release assets
       packages: write
     runs-on: ubuntu-latest
+    needs:
+      - suite
     name: release${{ !startsWith(github.ref, 'refs/tags/v') && ' test' || '' }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -76,13 +87,3 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Check the linux build version
         run: ./dist/etc-hosts-proxy_linux_amd64_v1/etc-hosts-proxy --version
-
-  suite:
-    needs:
-      - lint
-      - tests
-      - release
-    runs-on: ubuntu-latest
-    name: test suite
-    steps:
-      - run: echo Test suite completed
