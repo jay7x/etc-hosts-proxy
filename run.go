@@ -157,22 +157,35 @@ func runAction(cmd *cobra.Command, args []string) error {
 			})
 		proxy.OnResponse().DoFunc(
 			func(resp *http.Response, ctx *goproxy.ProxyCtx) *http.Response {
-				if resp == nil {
-					return resp
-				}
 				if entry, ok := ctx.UserData.(*accessEntry); ok {
 					attrs := []slog.Attr{
 						slog.String("client", entry.client),
 						slog.String("method", entry.method),
 						slog.String("host", entry.host),
 						slog.String("path", entry.path),
-						slog.Int("status", resp.StatusCode),
-						slog.Int64("size", resp.ContentLength),
 						slog.Int64("duration_ms", time.Since(entry.start).Milliseconds()),
 						slog.Bool("rewritten", entry.rewritten),
 					}
 					if entry.rewritten {
 						attrs = append(attrs, slog.String("target", entry.target))
+					}
+					if resp != nil {
+						attrs = append(attrs,
+							slog.Int("status", resp.StatusCode),
+							slog.Int64("size", resp.ContentLength),
+						)
+					} else {
+						attrs = append(attrs,
+							slog.Int("status", http.StatusBadGateway),
+							slog.Int64("size", 0),
+						)
+						if ctx.Error != nil {
+							slog.Warn("request failed",
+								slog.String("client", entry.client),
+								slog.String("host", entry.host),
+								slog.String("error", ctx.Error.Error()),
+							)
+						}
 					}
 					slog.LogAttrs(context.Background(), slog.LevelInfo, "", attrs...)
 				}
