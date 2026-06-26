@@ -123,7 +123,7 @@ See [etc-hosts-proxy Github Container registry](https://github.com/jay7x/etc-hos
 | Variable | Description |
 | - | - |
 | `ETC_HOSTS_PROXY_DEBUG` | Enable debug mode |
-| `ETC_HOSTS_PROXY_LOG_LEVEL` | Set the logging level [`trace`, `debug`, `info`, `warn`, `error`] |
+| `ETC_HOSTS_PROXY_LOG_LEVEL` | Set the logging level [`debug`, `info`, `warn`, `error`] |
 | `ETC_HOSTS_PROXY_LOG_FORMAT` | Log format (`text` or `json`) |
 | `ETC_HOSTS_PROXY_MODE` | Mode to start proxy in (`http` or `socks5`) |
 | `ETC_HOSTS_PROXY_LISTEN_ADDRESS` | [`<host>`]:`<port>` to listen for proxy requests on |
