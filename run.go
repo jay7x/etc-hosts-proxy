@@ -3,13 +3,14 @@ package main
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 
 	"github.com/elazarl/goproxy"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/things-go/go-socks5"
 	"github.com/things-go/go-socks5/statute"
@@ -59,6 +60,14 @@ func newRunCommand() *cobra.Command {
 	return runCommand
 }
 
+type socks5Logger struct {
+	logger *slog.Logger
+}
+
+func (l socks5Logger) Errorf(format string, args ...interface{}) {
+	l.logger.Log(context.Background(), slog.LevelError, fmt.Sprintf(format, args...))
+}
+
 // SOCKS5 destination address rewriter
 type HostRewriter struct {
 	hostsMap map[string]string
@@ -78,24 +87,27 @@ func (r HostRewriter) Rewrite(ctx context.Context, request *socks5.Request) (con
 	if found {
 		daSpec, err := statute.ParseAddrSpec(net.JoinHostPort(dst, strconv.Itoa(request.DestAddr.Port)))
 		if err == nil {
-			logrus.WithFields(logrus.Fields{
-				"client":    request.RemoteAddr.String(),
-				"method":    "SOCKS5",
-				"host":      originalHost,
-				"rewritten": true,
-				"target":    dst,
-			}).Info("")
+			slog.Info("",
+				slog.String("client", request.RemoteAddr.String()),
+				slog.String("method", "SOCKS5"),
+				slog.String("host", originalHost),
+				slog.Bool("rewritten", true),
+				slog.String("target", dst),
+			)
 			return ctx, &daSpec
 		}
-		logrus.Warnf("Unable to parse AddrSpec(%v:%v), skipping...", dst, request.DestAddr.Port)
+		slog.Warn("unable to parse AddrSpec, skipping...",
+			slog.String("host", dst),
+			slog.Int("port", request.DestAddr.Port),
+		)
 	}
 
-	logrus.WithFields(logrus.Fields{
-		"client":    request.RemoteAddr.String(),
-		"method":    "SOCKS5",
-		"host":      originalHost,
-		"rewritten": false,
-	}).Info("")
+	slog.Info("",
+		slog.String("client", request.RemoteAddr.String()),
+		slog.String("method", "SOCKS5"),
+		slog.String("host", originalHost),
+		slog.Bool("rewritten", false),
+	)
 	return ctx, request.DestAddr
 }
 
@@ -110,15 +122,20 @@ func runAction(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	for src, dst := range hostsMap {
-		logrus.Debugf("Mapping %s to %s", src, dst)
+		slog.Debug("mapping host",
+			slog.String("src", src),
+			slog.String("dst", dst),
+		)
 	}
 
 	switch proxyMode, _ := cmd.Flags().GetString("mode"); proxyMode {
 	case "http":
-		logrus.Debugf("Starting HTTP proxy on %s", listenAddress)
+		slog.Debug("starting HTTP proxy",
+			slog.String("listen", listenAddress),
+		)
 		proxy := goproxy.NewProxyHttpServer()
-		proxy.Logger = logrus.StandardLogger()
-		if logrus.GetLevel() >= logrus.DebugLevel {
+		proxy.Logger = slog.NewLogLogger(slog.Default().Handler(), slog.LevelInfo)
+		if logLevel.Level() <= slog.LevelDebug {
 			proxy.Verbose = true
 		}
 		proxy.OnRequest().DoFunc(
@@ -144,20 +161,20 @@ func runAction(cmd *cobra.Command, args []string) error {
 					return resp
 				}
 				if entry, ok := ctx.UserData.(*accessEntry); ok {
-					fields := logrus.Fields{
-						"client":      entry.client,
-						"method":      entry.method,
-						"host":        entry.host,
-						"path":        entry.path,
-						"status":      resp.StatusCode,
-						"size":        resp.ContentLength,
-						"duration_ms": time.Since(entry.start).Milliseconds(),
-						"rewritten":   entry.rewritten,
+					attrs := []slog.Attr{
+						slog.String("client", entry.client),
+						slog.String("method", entry.method),
+						slog.String("host", entry.host),
+						slog.String("path", entry.path),
+						slog.Int("status", resp.StatusCode),
+						slog.Int64("size", resp.ContentLength),
+						slog.Int64("duration_ms", time.Since(entry.start).Milliseconds()),
+						slog.Bool("rewritten", entry.rewritten),
 					}
 					if entry.rewritten {
-						fields["target"] = entry.target
+						attrs = append(attrs, slog.String("target", entry.target))
 					}
-					logrus.WithFields(fields).Info("")
+					slog.LogAttrs(context.Background(), slog.LevelInfo, "", attrs...)
 				}
 				return resp
 			})
@@ -165,37 +182,46 @@ func runAction(cmd *cobra.Command, args []string) error {
 			func(host string, ctx *goproxy.ProxyCtx) (*goproxy.ConnectAction, string) {
 				h, port, _ := net.SplitHostPort(host)
 				if dst, found := hostsMap[h]; found {
-					logrus.WithFields(logrus.Fields{
-						"client":    ctx.Req.RemoteAddr,
-						"method":    "CONNECT",
-						"host":      host,
-						"rewritten": true,
-						"target":    dst,
-					}).Info("")
+					slog.Info("",
+						slog.String("client", ctx.Req.RemoteAddr),
+						slog.String("method", "CONNECT"),
+						slog.String("host", host),
+						slog.Bool("rewritten", true),
+						slog.String("target", dst),
+					)
 					return goproxy.OkConnect, net.JoinHostPort(dst, port)
 				}
-				logrus.WithFields(logrus.Fields{
-					"client":    ctx.Req.RemoteAddr,
-					"method":    "CONNECT",
-					"host":      host,
-					"rewritten": false,
-				}).Info("")
+				slog.Info("",
+					slog.String("client", ctx.Req.RemoteAddr),
+					slog.String("method", "CONNECT"),
+					slog.String("host", host),
+					slog.Bool("rewritten", false),
+				)
 				return goproxy.OkConnect, host
 			})
-		logrus.Fatal(http.ListenAndServe(listenAddress, proxy))
+		if err := http.ListenAndServe(listenAddress, proxy); err != nil {
+			slog.Error(err.Error())
+			os.Exit(1)
+		}
 
 	case "socks5":
-		logrus.Debugf("Starting SOCKS5 proxy on %s", listenAddress)
+		slog.Debug("starting SOCKS5 proxy",
+			slog.String("listen", listenAddress),
+		)
 		proxy := socks5.NewServer(
-			socks5.WithLogger(logrus.StandardLogger()),
+			socks5.WithLogger(&socks5Logger{logger: slog.Default()}),
 			socks5.WithRewriter(HostRewriter{hostsMap: hostsMap}),
 		)
 		if err := proxy.ListenAndServe("tcp", listenAddress); err != nil {
-			logrus.Fatal(err)
+			slog.Error(err.Error())
+			os.Exit(1)
 		}
 
 	default:
-		logrus.Fatalf("Unsupported proxy mode %v", proxyMode)
+		slog.Error("unsupported proxy mode",
+			slog.String("mode", proxyMode),
+		)
+		os.Exit(1)
 	}
 
 	return nil

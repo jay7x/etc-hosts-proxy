@@ -42,7 +42,7 @@ The test binary (`./etc-hosts-proxy.test`) is automatically removed after the te
 
 ## Access logs
 
-Access logs are emitted as structured `logrus.WithFields` entries at `info` level for every proxied request:
+Access logs are emitted as structured `slog.Info` entries at info level for every proxied request:
 
 | Mode | Fields |
 |---|---|
@@ -50,7 +50,7 @@ Access logs are emitted as structured `logrus.WithFields` entries at `info` leve
 | **CONNECT** | `client`, `method: "CONNECT"`, `host`, `rewritten`, `target` |
 | **SOCKS5** | `client`, `method: "SOCKS5"`, `host`, `rewritten`, `target` |
 
-`target` is omitted when `rewritten=false`. Access logs are suppressed at `warn` level and above; `debug` level adds goproxy/socks5 verbose output.
+`target` is omitted when `rewritten=false`. Access logs are suppressed when the log level is `warn` or above; `debug` level adds goproxy/socks5 verbose output.
 
 ## Environment / CLI
 
