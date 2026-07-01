@@ -1,6 +1,7 @@
 package main
 
 var (
-	// Version is filled on compilation time
+	// Version info is filled on compilation time
 	version = "<unknown>"
+	commit  = "<unknown>"
 )

@@ -59,7 +59,7 @@ func newApp() *cobra.Command {
 		DisableAutoGenTag: true,
 	}
 
-	rootCmd.SetVersionTemplate("{{.Version}}\n")
+	rootCmd.SetVersionTemplate(fmt.Sprintf("%s %s (%s)\n", executableName, version, commit))
 
 	rootCmd.PersistentFlags().String("log-level",
 		GetEnvWithDefault("ETC_HOSTS_PROXY_LOG_LEVEL", ""),
