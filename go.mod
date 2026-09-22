@@ -1,16 +1,16 @@
 module github.com/jay7x/etc-hosts-proxy
 
-go 1.25.0
+go 1.26.0
 
 require (
 	github.com/elazarl/goproxy v1.9.1
 	github.com/spf13/cobra v1.10.2
 	github.com/things-go/go-socks5 v0.1.3
-	golang.org/x/net v0.57.0
+	golang.org/x/net v0.59.0
 )
 
 require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.9 // indirect
-	golang.org/x/text v0.40.0 // indirect
+	golang.org/x/text v0.42.0 // indirect
 )
