@@ -5,7 +5,7 @@ go 1.26.0
 require (
 	github.com/elazarl/goproxy v1.9.2
 	github.com/spf13/cobra v1.10.2
-	github.com/things-go/go-socks5 v0.1.3
+	github.com/things-go/go-socks5 v0.1.4
 	golang.org/x/net v0.61.0
 )
 
