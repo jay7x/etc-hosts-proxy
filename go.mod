@@ -6,7 +6,7 @@ require (
 	github.com/elazarl/goproxy v1.9.2
 	github.com/spf13/cobra v1.10.2
 	github.com/things-go/go-socks5 v0.1.4
-	golang.org/x/net v0.61.0
+	golang.org/x/net v0.62.0
 )
 
 require (
